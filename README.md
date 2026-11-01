@@ -52,3 +52,7 @@ Botão direito no ícone: **Configurações** (abre a janela) e **Fechar** (pede
 - **Prioridade**: quando dois agendamentos coincidem, vence data única → anual → mensal → semanal → diário → período; empate → janela mais curta; empate → o criado por último.
 - **Monitores**: cada agendamento tem conteúdo para "Todos os monitores" e, opcionalmente, por monitor. O Windows só aceita um modo de ajuste global; se os monitores usam ajustes diferentes, o app pré-renderiza cada imagem na resolução do monitor e aplica como "Preencher".
 - **Timer**: um único timer até a próxima troca, reavaliado ao mudar o relógio, voltar da suspensão, desbloquear a sessão ou mudar monitores.
+
+## Licença
+
+[MIT](LICENSE): use, copie, modifique e distribua à vontade, mantendo o aviso de copyright.
