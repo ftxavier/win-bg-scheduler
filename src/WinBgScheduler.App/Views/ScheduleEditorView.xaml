@@ -1,0 +1,430 @@
+<UserControl
+    x:Class="WinBgScheduler.App.Views.ScheduleEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="clr-namespace:WinBgScheduler.App.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:WinBgScheduler.App.ViewModels"
+    x:Name="Root"
+    d:DataContext="{d:DesignInstance vm:ScheduleEditorViewModel}"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <Style x:Key="Row" TargetType="FrameworkElement">
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style
+            x:Key="TimeBox"
+            BasedOn="{StaticResource {x:Type ui:TextBox}}"
+            TargetType="ui:TextBox">
+            <Setter Property="Width" Value="90" />
+            <Setter Property="PlaceholderText" Value="HH:mm" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  Header  -->
+        <DockPanel Margin="0,0,0,16">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <ui:Button
+                    Margin="0,0,8,0"
+                    Command="{Binding CancelCommand}"
+                    Content="Cancelar" />
+                <ui:Button
+                    Appearance="Primary"
+                    Command="{Binding SaveCommand}"
+                    Content="Salvar"
+                    Icon="{ui:SymbolIcon Save24}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <ui:Button
+                    Margin="0,0,12,0"
+                    Appearance="Transparent"
+                    Command="{Binding CancelCommand}"
+                    AutomationProperties.Name="Voltar"
+                    Icon="{ui:SymbolIcon ArrowLeft24}"
+                    ToolTip="Voltar" />
+                <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}" />
+            </StackPanel>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="400" />
+            </Grid.ColumnDefinitions>
+
+            <!--  Form  -->
+            <ScrollViewer
+                Grid.Column="0"
+                Padding="0,0,16,0"
+                VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <ui:Card Style="{StaticResource CardSpacing}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Nome" />
+                            <ui:TextBox PlaceholderText="Ex.: Quarta à noite" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </ui:Card>
+
+                    <ui:Card Style="{StaticResource CardSpacing}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Imagens" />
+                            <ContentControl Content="{Binding Content}" Focusable="False" />
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!--  Recurrence  -->
+                    <ui:Card Style="{StaticResource CardSpacing}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Quando" />
+                            <ComboBox
+                                Margin="0,0,0,12"
+                                DisplayMemberPath="Label"
+                                ItemsSource="{Binding RecurrenceOptions}"
+                                SelectedValue="{Binding Kind}"
+                                SelectedValuePath="Value" />
+
+                            <!--  Once  -->
+                            <DockPanel Style="{StaticResource Row}" Visibility="{Binding IsOnce, Converter={StaticResource VisibleWhen}}">
+                                <TextBlock Style="{StaticResource Label}" Text="Data" />
+                                <DatePicker SelectedDateFormat="Short" SelectedDate="{Binding OnceDate}" />
+                            </DockPanel>
+
+                            <!--  Interval  -->
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Style="{StaticResource Row}"
+                                Visibility="{Binding HasInterval, Converter={StaticResource VisibleWhen}}">
+                                <TextBlock Style="{StaticResource Label}" Text="A cada" />
+                                <ui:NumberBox
+                                    Width="120"
+                                    Maximum="365"
+                                    Minimum="1"
+                                    SpinButtonPlacementMode="Inline"
+                                    Value="{Binding Interval, Converter={StaticResource IntToDouble}}" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    Style="{StaticResource Label}"
+                                    Text="{Binding IntervalUnit}" />
+                            </StackPanel>
+
+                            <!--  Weekly  -->
+                            <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsWeekly, Converter={StaticResource VisibleWhen}}">
+                                <TextBlock
+                                    Margin="0,0,0,6"
+                                    Style="{StaticResource Caption}"
+                                    Text="Dias da semana" />
+                                <ItemsControl ItemsSource="{Binding Days}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DayToggle}">
+                                            <ToggleButton
+                                                Width="40"
+                                                Height="40"
+                                                Margin="0,0,6,0"
+                                                Content="{Binding Label}"
+                                                IsChecked="{Binding IsChecked}"
+                                                ToolTip="{Binding FullName}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!--  Monthly  -->
+                            <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsMonthly, Converter={StaticResource VisibleWhen}}">
+                                <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                                    <RadioButton
+                                        MinWidth="0"
+                                        Content="No dia"
+                                        GroupName="monthly"
+                                        IsChecked="{Binding MonthlyByDay}" />
+                                    <ui:NumberBox
+                                        Width="120"
+                                        Margin="8,0,0,0"
+                                        IsEnabled="{Binding MonthlyByDay}"
+                                        Maximum="31"
+                                        Minimum="1"
+                                        SpinButtonPlacementMode="Inline"
+                                        Value="{Binding DayOfMonth, Converter={StaticResource IntToDouble}}" />
+                                    <TextBlock
+                                        Margin="8,0,0,0"
+                                        Style="{StaticResource Caption}"
+                                        VerticalAlignment="Center"
+                                        Text="(31 = último dia do mês)" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton
+                                        MinWidth="0"
+                                        Content="Na"
+                                        GroupName="monthly"
+                                        IsChecked="{Binding MonthlyByWeekday}" />
+                                    <ComboBox
+                                        MinWidth="120"
+                                        Margin="8,0,0,0"
+                                        DisplayMemberPath="Label"
+                                        IsEnabled="{Binding MonthlyByWeekday}"
+                                        ItemsSource="{Binding WeekOfMonthOptions}"
+                                        SelectedValue="{Binding WeekOfMonth}"
+                                        SelectedValuePath="Value" />
+                                    <ComboBox
+                                        MinWidth="150"
+                                        Margin="8,0,0,0"
+                                        DisplayMemberPath="Label"
+                                        IsEnabled="{Binding MonthlyByWeekday}"
+                                        ItemsSource="{Binding WeekdayOptions}"
+                                        SelectedValue="{Binding Weekday}"
+                                        SelectedValuePath="Value" />
+                                    <TextBlock
+                                        Margin="8,0,0,0"
+                                        Style="{StaticResource Label}"
+                                        Text="do mês" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!--  Yearly  -->
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Style="{StaticResource Row}"
+                                Visibility="{Binding IsYearly, Converter={StaticResource VisibleWhen}}">
+                                <TextBlock Style="{StaticResource Label}" Text="Todo dia" />
+                                <ui:NumberBox
+                                    Width="120"
+                                    Maximum="31"
+                                    Minimum="1"
+                                    SpinButtonPlacementMode="Inline"
+                                    Value="{Binding DayOfMonth, Converter={StaticResource IntToDouble}}" />
+                                <TextBlock
+                                    Margin="8,0"
+                                    Style="{StaticResource Label}"
+                                    Text="de" />
+                                <ComboBox
+                                    MinWidth="150"
+                                    DisplayMemberPath="Label"
+                                    ItemsSource="{Binding MonthOptions}"
+                                    SelectedValue="{Binding Month}"
+                                    SelectedValuePath="Value" />
+                            </StackPanel>
+
+                            <!--  Date range  -->
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Style="{StaticResource Row}"
+                                Visibility="{Binding IsDateRange, Converter={StaticResource VisibleWhen}}">
+                                <TextBlock Style="{StaticResource Label}" Text="De" />
+                                <DatePicker SelectedDateFormat="Short" Width="160" SelectedDate="{Binding RangeStart}" />
+                                <TextBlock
+                                    Margin="12,0,8,0"
+                                    Style="{StaticResource Label}"
+                                    Text="até" />
+                                <DatePicker SelectedDateFormat="Short" Width="160" SelectedDate="{Binding RangeEnd}" />
+                            </StackPanel>
+
+                            <!--  Validity  -->
+                            <WrapPanel Margin="0,6,0,0" Visibility="{Binding HasValidity, Converter={StaticResource VisibleWhen}}">
+                                <StackPanel Margin="0,0,16,6" Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Label}" Text="Começa em" />
+                                    <DatePicker SelectedDateFormat="Short" Width="160" SelectedDate="{Binding StartDate}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,0,6" Orientation="Horizontal">
+                                    <CheckBox
+                                        Margin="0,0,8,0"
+                                        Content="Termina em"
+                                        IsChecked="{Binding HasEndDate}" />
+                                    <DatePicker
+                                        Width="160"
+                                        IsEnabled="{Binding HasEndDate}"
+                                        SelectedDateFormat="Short"
+                                        SelectedDate="{Binding EndDate}" />
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!--  Time window  -->
+                    <ui:Card Style="{StaticResource CardSpacing}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Horário" />
+                            <RadioButton
+                                Margin="0,0,0,8"
+                                Content="O dia todo"
+                                GroupName="window"
+                                IsChecked="{Binding IsAllDay}" />
+                            <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                                <RadioButton
+                                    MinWidth="0"
+                                    Content="Das"
+                                    GroupName="window"
+                                    IsChecked="{Binding IsRange}" />
+                                <ui:TextBox
+                                    Margin="8,0"
+                                    IsEnabled="{Binding IsRange}"
+                                    Style="{StaticResource TimeBox}"
+                                    Text="{Binding StartTimeText, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource Label}" Text="às" />
+                                <ui:TextBox
+                                    IsEnabled="{Binding IsRange}"
+                                    Style="{StaticResource TimeBox}"
+                                    Text="{Binding EndTimeText, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <TextBlock
+                                Margin="28,-2,0,10"
+                                Style="{StaticResource Caption}"
+                                Text="Pode passar da meia-noite, ex.: das 22:00 às 02:00." />
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton
+                                    MinWidth="0"
+                                    Content="A partir das"
+                                    GroupName="window"
+                                    IsChecked="{Binding IsDuration}" />
+                                <ui:TextBox
+                                    Margin="8,0"
+                                    IsEnabled="{Binding IsDuration}"
+                                    Style="{StaticResource TimeBox}"
+                                    Text="{Binding StartTimeText, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource Label}" Text="por" />
+                                <ui:NumberBox
+                                    Width="130"
+                                    IsEnabled="{Binding IsDuration}"
+                                    Maximum="10080"
+                                    Minimum="1"
+                                    SpinButtonPlacementMode="Inline"
+                                    Value="{Binding DurationMinutes, Converter={StaticResource IntToDouble}}" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    Style="{StaticResource Label}"
+                                    Text="minutos" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!--  Exceptions  -->
+                    <ui:Card Style="{StaticResource CardSpacing}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Exceções" />
+                            <TextBlock
+                                Margin="0,0,0,8"
+                                Style="{StaticResource Caption}"
+                                Text="Datas em que este agendamento não vale (feriados, viagens...)." />
+                            <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                                <DatePicker SelectedDateFormat="Short" Width="160" SelectedDate="{Binding NewException}" />
+                                <ui:Button
+                                    Margin="8,0,0,0"
+                                    Command="{Binding AddExceptionCommand}"
+                                    Content="Adicionar"
+                                    Icon="{ui:SymbolIcon Add24}" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding Exceptions}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Margin="0,0,6,6"
+                                            Padding="10,2,2,2"
+                                            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                            CornerRadius="12">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock VerticalAlignment="Center" Text="{Binding StringFormat=ddd dd/MM/yyyy}" />
+                                                <ui:Button
+                                                    Padding="4"
+                                                    Appearance="Transparent"
+                                                    Command="{Binding DataContext.RemoveExceptionCommand, ElementName=Root}"
+                                                    CommandParameter="{Binding}"
+                                                    Icon="{ui:SymbolIcon Dismiss24}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!--  Notification  -->
+                    <ui:Card Style="{StaticResource CardSpacing}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Notificação" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Label}" Text="Avisar" />
+                                <ui:NumberBox
+                                    Width="130"
+                                    Maximum="1440"
+                                    Minimum="0"
+                                    SpinButtonPlacementMode="Inline"
+                                    Value="{Binding NotifyMinutesBefore, Converter={StaticResource IntToDouble}}" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    Style="{StaticResource Label}"
+                                    Text="minutos antes de trocar (0 = não avisar)" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ui:Card>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!--  Preview and summary  -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <ui:Card Style="{StaticResource CardSpacing}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Pré-visualização" />
+                            <c:WallpaperPreview
+                                Fit="{Binding Content.Fit}"
+                                ImagePath="{Binding Content.PreviewPath}"
+                                MonitorHeight="{Binding Content.PreviewMonitorHeight}"
+                                MonitorWidth="{Binding Content.PreviewMonitorWidth}" />
+                            <ui:Button
+                                Margin="0,12,0,0"
+                                HorizontalAlignment="Stretch"
+                                Command="{Binding TestCommand}"
+                                Content="Testar no desktop por 10 segundos"
+                                Icon="{ui:SymbolIcon Desktop24}" />
+                        </StackPanel>
+                    </ui:Card>
+
+                    <ui:Card Style="{StaticResource CardSpacing}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Resumo" />
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Text="{Binding Summary}"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                Margin="0,12,0,6"
+                                Style="{StaticResource Caption}"
+                                Text="Próximas ocorrências" />
+                            <ItemsControl ItemsSource="{Binding NextOccurrences}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Margin="0,0,0,4" Text="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <ui:InfoBar
+                        Title="Não foi possível salvar"
+                        IsClosable="False"
+                        IsOpen="True"
+                        Message="{Binding Error}"
+                        Severity="Error"
+                        Visibility="{Binding Error, Converter={StaticResource VisibleWhen}}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

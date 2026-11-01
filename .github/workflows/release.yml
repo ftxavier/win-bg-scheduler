@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      # Última release + 0.1 (v0.1, v0.2, ...); sem release ainda → 0.1.
+      - name: Versão
+        id: version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $last = gh release list --limit 100 --json tagName --jq '.[].tagName' |
+            Where-Object { $_ -match '^v0\.(\d+)$' } |
+            ForEach-Object { [int]$Matches[1] } |
+            Measure-Object -Maximum
+          $next = if ($last.Count) { $last.Maximum + 1 } else { 1 }
+          "value=0.$next" >> $env:GITHUB_OUTPUT
+
+      - name: Testes
+        run: dotnet test -c Release
+
+      - name: Publicar
+        run: dotnet publish src/WinBgScheduler.App -p:PublishProfile=win-x64 -p:Version=${{ steps.version.outputs.value }}
+
+      - name: Criar release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v${{ steps.version.outputs.value }}"
+          gh release create $tag publish/WinBgScheduler.exe `
+            --target $env:GITHUB_SHA `
+            --title "Win BG Scheduler $tag" `
+            --generate-notes
